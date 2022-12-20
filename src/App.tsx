@@ -1,28 +1,10 @@
 import { useState, useCallback, useRef } from 'react'
 import { fileOpen } from 'browser-fs-access';
-import { javascript } from "@codemirror/lang-javascript"
 import CodeMirror from '@uiw/react-codemirror';
+import { javascript } from "@codemirror/lang-javascript"
+import { debounce } from './debounce'
+import { Handle } from './interface'
 import './App.css'
-
-function debounce<F extends (...args: Parameters<F>) => ReturnType<F>>(
-    func: F,
-    waitFor: number,
-): (...args: Parameters<F>) => void {
-    let timeout: number;
-    return (...args: Parameters<F>): void => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func(...args), waitFor);
-    };
-}
-
-interface Writable {
-    write(s: string): Promise<void>;
-    close(): Promise<void>;
-}
-
-interface Handle extends FileSystemFileHandle {
-    createWritable: () => Promise<Writable>;
-}
 
 const Spinner = () => <div className="container">
     {Array(15).fill(0).map(() => <div className="block"></div>)}
@@ -30,38 +12,35 @@ const Spinner = () => <div className="container">
 
 function App() {
     const [value, setValue] = useState("console.log('hello world!');")
-    const handle = useRef<Handle>()
-    const writable = useRef<Writable>()
     const [loading, setLoading] = useState(false);
+    const handle = useRef<Handle>()
 
     const onChange = useCallback(debounce(async (value: string) => {
         setLoading(true)
 
-        const contents = value;
         const writer = await handle?.current?.createWritable();
 
         if (!writer) {
             setLoading(false)
             return
         };
-        await writer.write(contents);
+
+        await writer.write(value);
         await writer.close();
 
         setLoading(false)
     }, 500), []);
 
-    const handleOpen = async () => {
+    const handleOpen = useCallback(async () => {
         const blob = await fileOpen({
             description: 'Text files',
             mimeTypes: ['text/*'],
         });
 
         handle.current = blob.handle as Handle
-        writable.current = await (blob.handle as Handle).createWritable();
 
-        const text = await blob.text();
-        setValue(text);
-    }
+        setValue(await blob.text());
+    }, [])
 
     return (
         <div className="App">
