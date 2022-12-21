@@ -2,23 +2,33 @@ import { useState, useCallback, useRef } from 'react'
 import { fileOpen } from 'browser-fs-access';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from "@codemirror/lang-javascript"
+import { useInterval } from 'usehooks-ts'
+import Editor from "@monaco-editor/react";
 import { debounce } from './debounce'
 import { Handle } from './interface'
 import './App.css'
 
-const Spinner = () => <div className="container">
-    {Array(15).fill(0).map(() => <div className="block"></div>)}
+const Spinner = () => <div className="lds-roller">
+    <div />
+    <div />
+    <div />
+    <div />
+    <div />
+    <div />
+    <div />
+    <div />
 </div>
 
-function App() {
+const App = () => {
     const [value, setValue] = useState("console.log('hello world!');")
     const [loading, setLoading] = useState(false);
-    const handle = useRef<Handle>()
+    const lastModified = useRef(0);
+    const [handle, setHandle] = useState<Handle>()
 
     const onChange = useCallback(debounce(async (value: string) => {
         setLoading(true)
 
-        const writer = await handle?.current?.createWritable();
+        const writer = await handle?.createWritable();
 
         if (!writer) {
             setLoading(false)
@@ -37,28 +47,38 @@ function App() {
             mimeTypes: ['text/*'],
         });
 
-        handle.current = blob.handle as Handle
-
+        lastModified.current = (blob.lastModified);
         setValue(await blob.text());
-    }, [])
+        setHandle(blob.handle as Handle)
+    }, [handle])
+
+    useInterval(async () => {
+        const file = await handle?.getFile();
+        if (file?.lastModified !== lastModified.current) {
+            const text = await file?.text();
+            if (text) {
+                setLoading(true)
+                setValue(text);
+                setLoading(false)
+            }
+        }
+    }, handle ? 5000 : null)
 
     return (
         <div className="App">
             {loading ? <Spinner /> : null}
 
-            <CodeMirror
+            <Editor
+                height="70vh"
+                width="100vw"
+                defaultLanguage="javascript"
+                defaultValue="// some comment"
                 value={value}
-                height="500px"
-                width="1000px"
-                extensions={[javascript({ jsx: true })]}
-                onChange={onChange}
             />
 
             <div className="card">
-                <button onClick={() => {
-                    handleOpen()
-                }}>
-                    open a file!
+                <button onClick={() => handleOpen()}>
+                    Open a file
                 </button>
             </div>
         </div>
