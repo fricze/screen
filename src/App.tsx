@@ -1,12 +1,48 @@
 import { useState, useCallback, useRef } from 'react'
 import { fileOpen } from 'browser-fs-access';
-import CodeMirror from '@uiw/react-codemirror';
-import { javascript } from "@codemirror/lang-javascript"
 import { useInterval } from 'usehooks-ts'
 import Editor from "@monaco-editor/react";
 import { debounce } from './debounce'
 import { Handle } from './interface'
 import './App.css'
+
+type T1 = Extract<string | number | (() => void) | ((a: number) => number), Function>;
+
+type T2 = Parameters<(s: string, b: number, ...args: Function[]) => void>;
+
+
+const ppl = {
+    one: 1,
+    two: 2,
+};
+
+type People<T = string> = {
+    [N in keyof typeof ppl]: T;
+}
+
+type Getters<Type> = {
+    [Property in keyof Type as `get${Capitalize<string & Property>}`]: () => Type[Property]
+};
+
+interface Person {
+    name: string;
+    age: number;
+    location: string;
+}
+
+type LazyPerson = Getters<Person>;
+
+type RemoveKindField<Type> = {
+    [Property in keyof Type as Exclude<Property, "kind">]: Type[Property]
+};
+
+interface Circle {
+    kind: "circle";
+    radius: number;
+}
+
+type KindlessCircle = RemoveKindField<Circle>;
+
 
 const Spinner = () => <div className="lds-roller">
     <div />
