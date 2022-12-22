@@ -1,48 +1,14 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { fileOpen } from 'browser-fs-access';
 import { useInterval } from 'usehooks-ts'
-import Editor from "@monaco-editor/react";
+import {
+    MonacoJsxSyntaxHighlight,
+    getWorker
+} from "monaco-jsx-syntax-highlight";
+import Editor, { useMonaco } from "@monaco-editor/react";
 import { debounce } from './debounce'
 import { Handle } from './interface'
 import './App.css'
-
-type T1 = Extract<string | number | (() => void) | ((a: number) => number), Function>;
-
-type T2 = Parameters<(s: string, b: number, ...args: Function[]) => void>;
-
-
-const ppl = {
-    one: 1,
-    two: 2,
-};
-
-type People<T = string> = {
-    [N in keyof typeof ppl]: T;
-}
-
-type Getters<Type> = {
-    [Property in keyof Type as `get${Capitalize<string & Property>}`]: () => Type[Property]
-};
-
-interface Person {
-    name: string;
-    age: number;
-    location: string;
-}
-
-type LazyPerson = Getters<Person>;
-
-type RemoveKindField<Type> = {
-    [Property in keyof Type as Exclude<Property, "kind">]: Type[Property]
-};
-
-interface Circle {
-    kind: "circle";
-    radius: number;
-}
-
-type KindlessCircle = RemoveKindField<Circle>;
-
 
 const Spinner = () => <div className="lds-roller">
     <div />
@@ -55,11 +21,56 @@ const Spinner = () => <div className="lds-roller">
     <div />
 </div>
 
+const defaultCode = `const test = () => {
+  const num: number = 123
+
+  return (
+    <div className='test'>
+      {num}
+      <div render={<div style={'background: red;'}/>}/>
+      <div props={num}></div>
+    </div>
+  )
+}
+`;
+
 const App = () => {
     const [value, setValue] = useState("console.log('hello world!');")
     const [loading, setLoading] = useState(false);
     const lastModified = useRef(0);
     const [handle, setHandle] = useState<Handle>()
+
+    const monaco = useMonaco();
+
+    const handleEditorDidMount = useCallback((editor: any, monaco: any) => {
+        monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+            jsx: monaco.languages.typescript.JsxEmit.Preserve,
+            target: monaco.languages.typescript.ScriptTarget.ES2020,
+            esModuleInterop: true
+        });
+
+        const monacoJsxSyntaxHighlight = new MonacoJsxSyntaxHighlight(
+            getWorker(),
+            monaco
+        );
+
+        // editor is the result of monaco.editor.create
+        const {
+            highlighter,
+            dispose
+        } = monacoJsxSyntaxHighlight.highlighterBuilder({
+            editor: editor
+        });
+        // init highlight
+        highlighter();
+
+        editor.onDidChangeModelContent(() => {
+            // content change, highlight
+            highlighter();
+        });
+
+        return dispose;
+    }, []);
 
     const onChange = useCallback(debounce(async (value: string) => {
         setLoading(true)
@@ -80,7 +91,6 @@ const App = () => {
     const handleOpen = useCallback(async () => {
         const blob = await fileOpen({
             description: 'Text files',
-            mimeTypes: ['text/*'],
         });
 
         lastModified.current = (blob.lastModified);
@@ -105,10 +115,19 @@ const App = () => {
             {loading ? <Spinner /> : null}
 
             <Editor
-                height="70vh"
+                height={"70vh"}
                 width="100vw"
-                defaultLanguage="javascript"
-                defaultValue="// some comment"
+                className={"editor"}
+                onMount={handleEditorDidMount}
+                theme={"vs-dark"}
+                path={"file:///index.tsx"}
+                defaultLanguage="typescript"
+                options={{
+                    fontSize: 16,
+                    lineHeight: 28,
+                    automaticLayout: true
+                }}
+                defaultValue={defaultCode}
                 value={value}
             />
 

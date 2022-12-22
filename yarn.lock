@@ -1733,6 +1733,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"monaco-jsx-syntax-highlight@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "monaco-jsx-syntax-highlight@npm:1.2.0"
+  checksum: ce8f1af0457db4399101aeaf75e5bf8c5c8478539fe4186095181b7fd0df44209c7ee593d4218c13223921c65e9e6626374c9e1eab340a5521d3fdd81ce21a8c
+  languageName: node
+  linkType: hard
+
 "ms@npm:2.1.2":
   version: 2.1.2
   resolution: "ms@npm:2.1.2"
@@ -2190,6 +2197,7 @@ __metadata:
     autoprefixer: ^10.4.13
     browser-fs-access: ^0.31.1
     monaco-editor: ^0.34.1
+    monaco-jsx-syntax-highlight: ^1.2.0
     postcss: ^8.4.20
     react: ^18.2.0
     react-dom: ^18.2.0
